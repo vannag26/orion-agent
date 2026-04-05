@@ -1,6 +1,8 @@
 {
   "name": "orion-agent",
   "version": "1.0.0",
+  "description": "Orion \u2014 V&DG CTO/CISO",
+  "main": "src/orion.js",
   "scripts": {
     "start": "node src/orion.js"
   },
