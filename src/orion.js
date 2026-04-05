@@ -3,7 +3,6 @@ const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
 require('dotenv').config();
-const http      = require('http');
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 const ALLOWED_USER_ID = parseInt(process.env.ALLOWED_USER_ID);
@@ -15,7 +14,7 @@ const VDG_DATA_DIR = process.env.VDG_DATA_DIR || '/tmp/vdg-data';
 const CONVERSATION_FILE = path.join(VDG_DATA_DIR, 'orion_conversations.json');
 const MEMORY_FILE = path.join(VDG_DATA_DIR, 'memory.json');
 
-const ORION_SYSTEM_PROMPT = `You are Orion â V&DG Management LLC's CTO and CISO. Your role: all technology infrastructure, deployments, security, API integrations, system architecture, and technical operations. You serve Vanna Gonzalez (Chairman). V&DG tech stack: Node.js bots (Leo, Nova, Atlas, Themis, Orion) on Render, VDG Internal AI Gateway (Express proxy to Anthropic), RateWire FX API, Soul Resonance Navigator (Base44/Vercel/Supabase), Vibe Travel Stack. You have 3 sub-agents: ORION-ASSISTANT, DEVOPS-AGENT, BACKEND-AGENT. Security protocol: never expose credentials, flag suspicious activity to Vanna immediately. Be technically precise, give exact commands/configs when relevant.`;
+const ORION_SYSTEM_PROMPT = `You are Orion — V&DG Management LLC's CTO and CISO. Your role: all technology infrastructure, deployments, security, API integrations, system architecture, and technical operations. You serve Vanna Gonzalez (Chairman). V&DG tech stack: Node.js bots (Leo, Nova, Atlas, Themis, Orion) on Render, VDG Internal AI Gateway (Express proxy to Anthropic), RateWire FX API, Soul Resonance Navigator (Base44/Vercel/Supabase), Vibe Travel Stack. You have 3 sub-agents: ORION-ASSISTANT, DEVOPS-AGENT, BACKEND-AGENT. Security protocol: never expose credentials, flag suspicious activity to Vanna immediately. Be technically precise, give exact commands/configs when relevant.`;
 
 // Ensure VDG_DATA_DIR exists
 fs.ensureDirSync(VDG_DATA_DIR);
@@ -91,7 +90,7 @@ async function callClaude(messages, systemPrompt) {
 
 // /start command
 bot.command('start', async (ctx) => {
-  const greeting = `Welcome to Orion â V&DG Management LLC's CTO and CISO.
+  const greeting = `Welcome to Orion — V&DG Management LLC's CTO and CISO.
 
 I handle:
 - Technology infrastructure & deployments
@@ -183,37 +182,9 @@ process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
 // Launch bot
-
-// ── Launch ────────────────────────────────────────────────────────────────────
-// Keepalive HTTP server required by Render Web Service (port binding)
-const PORT = process.env.PORT || 3000;
-http.createServer((req, res) => res.end('Orion is alive')).listen(PORT, () => {
-  console.log('keepalive server on :' + PORT);
-  const host = process.env.RENDER_EXTERNAL_HOSTNAME || ('localhost:' + PORT);
-  const isLocal = host.startsWith('localhost');
-  const pinger = isLocal ? http : require('https');
-  setInterval(() => {
-    const url = (isLocal ? 'http://' : 'https://') + host + '/';
-    pinger.get(url, (r) => console.log('keep-alive: ' + r.statusCode)).on('error', (e) => console.log('keep-alive err: ' + e.message));
-  }, 840000);
+bot.launch().then(() => {
+  console.log('Orion bot is running...');
+}).catch(error => {
+  console.error('Failed to launch Orion bot:', error);
+  process.exit(1);
 });
-
-async function launchBot(attempt = 1) {
-  if (attempt > 1) {
-    const wait = attempt * 8000;
-    console.log('Retry attempt ' + attempt + ', waiting ' + (wait/1000) + 's...');
-    await new Promise(r => setTimeout(r, wait));
-  }
-  try {
-    await bot.launch({ dropPendingUpdates: true });
-    console.log('Orion bot is running...');
-  } catch (error) {
-    if (error.message && error.message.includes('409') && attempt < 6) {
-      console.log('409 conflict, retrying...');
-      return launchBot(attempt + 1);
-    }
-    console.error('Failed to launch Orion bot:', error.message);
-    // No process.exit — keepalive server stays up
-  }
-}
-launchBot();
